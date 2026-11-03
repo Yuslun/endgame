@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="theme-color" content="#1a1a2e">
+<title>Endgame Catur</title>
+<script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,"Segoe UI",Roboto,sans-serif;background:#f5f5f7;color:#1a1a2e;min-height:100vh;padding-bottom:70px}
+header{background:#1a1a2e;color:#fff;padding:16px 20px;position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+header h1{font-size:18px;font-weight:600}
+header p{font-size:12px;opacity:.7;margin-top:2px}
+.search{padding:12px 16px;background:#fff;position:sticky;top:60px;z-index:9;border-bottom:1px solid #eee}
+.search input{width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:10px;font-size:15px;background:#f5f5f7}
+.cats{display:flex;gap:8px;overflow-x:auto;padding:10px 16px;background:#fff;border-bottom:1px solid #eee;position:sticky;top:117px;z-index:8;scrollbar-width:none}
+.cats::-webkit-scrollbar{display:none}
+.cat{padding:6px 14px;background:#f0f0f3;border-radius:20px;font-size:13px;white-space:nowrap;border:none;cursor:pointer;color:#1a1a2e;font-weight:500}
+.cat.active{background:#1a1a2e;color:#fff}
+.list{padding:8px 0}
+.item{padding:14px 20px;background:#fff;border-bottom:1px solid #eee;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.item:active{background:#f0f0f3}
+.item-name{font-weight:600;font-size:15px}
+.item-cat{font-size:11px;color:#888;margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+.item-arrow{color:#bbb;font-size:18px}
+.detail{padding:20px;background:#fff;min-height:calc(100vh - 180px)}
+.detail h2{font-size:22px;margin-bottom:6px}
+.detail .tag{display:inline-block;font-size:11px;background:#1a1a2e;color:#fff;padding:3px 10px;border-radius:12px;margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px}
+.detail p{font-size:15px;line-height:1.6;color:#333}
+.detail .back{margin-bottom:16px;background:none;border:none;color:#1a1a2e;font-size:15px;cursor:pointer;font-weight:500}
+.empty{padding:40px 20px;text-align:center;color:#888}
+.nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #eee;display:flex;z-index:20}
+.nav button{flex:1;padding:10px 4px;background:none;border:none;cursor:pointer;font-size:11px;color:#888;display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:500}
+.nav button.active{color:#1a1a2e}
+.nav button .ic{font-size:19px}
+.quiz{padding:16px}
+.quiz h2{font-size:18px;margin-bottom:6px}
+.quiz .score{font-size:13px;color:#888;margin-bottom:16px}
+.q-card{background:#fff;padding:18px;border-radius:14px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.q-card .q-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.q-card .q-text{font-size:16px;font-weight:600;line-height:1.4}
+.opt{display:block;width:100%;padding:13px 16px;margin-bottom:9px;background:#fff;border:2px solid #eee;border-radius:12px;font-size:15px;text-align:left;cursor:pointer;color:#1a1a2e;font-weight:500}
+.opt.correct{background:#d4f4dd;border-color:#2ecc71}
+.opt.wrong{background:#fdd;border-color:#e74c3c}
+.opt:disabled{cursor:default}
+.next-btn{width:100%;padding:14px;background:#1a1a2e;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;margin-top:6px}
+.next-btn:disabled{opacity:.5}
+.progress{padding:16px}
+.stat-card{background:#fff;padding:20px;border-radius:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.stat-card h3{font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.stat-card .big{font-size:30px;font-weight:700}
+.stat-card .sub{font-size:13px;color:#888;margin-top:2px}
+.reset-btn{width:100%;padding:12px;background:#fff;color:#e74c3c;border:2px solid #e74c3c;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;margin-top:16px}
+/* Board */
+.pos-list{padding:12px}
+.pos-item{background:#fff;padding:14px 16px;border-radius:12px;margin-bottom:10px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.06);display:flex;justify-content:space-between;align-items:center}
+.pos-item .pn{font-weight:600;font-size:15px}
+.pos-item .pg{font-size:12px;color:#888;margin-top:3px}
+.pos-item .ar{color:#bbb;font-size:20px}
+.board-wrap{padding:16px}
+.board{display:grid;grid-template-columns:repeat(8,1fr);width:100%;aspect-ratio:1;max-width:420px;margin:0 auto;border:2px solid #333;border-radius:6px;overflow:hidden}
+.sq{display:flex;align-items:center;justify-content:center;font-size:clamp(22px,7vw,38px);cursor:pointer;user-select:none;position:relative;line-height:1}
+.sq.light{background:#f0d9b5}
+.sq.dark{background:#b58863}
+.sq.sel{box-shadow:inset 0 0 0 4px #f7d038}
+.sq.hint-move::after{content:'';position:absolute;width:26%;height:26%;background:rgba(0,0,0,.35);border-radius:50%}
+.sq.hint-cap{box-shadow:inset 0 0 0 4px rgba(231,76,60,.6)}
+.sq.check{background:#e74c3c!important}
+.piece-w{color:#fff;text-shadow:0 0 2px #000,0 0 2px #000,1px 1px 0 #000,-1px -1px 0 #000}
+.piece-b{color:#111;text-shadow:0 0 2px #fff,0 0 2px #fff,1px 1px 0 #fff,-1px -1px 0 #fff}
+.pos-info{padding:0 16px 16px}
+.pos-info h2{font-size:17px;margin-bottom:4px}
+.pos-info .goal{font-size:13px;color:#555;line-height:1.5;margin-bottom:8px}
+.pos-info .hint{font-size:12px;background:#fffbe6;border-left:3px solid #f7d038;padding:8px 12px;border-radius:6px;color:#555;margin-bottom:10px}
+.pos-info .status{font-size:14px;font-weight:600;padding:10px 14px;border-radius:10px;margin-bottom:10px;text-align:center}
+.status.win{background:#d4f4dd;color:#1a7a3e}
+.status.lose{background:#fdd;color:#a02020}
+.status.draw{background:#e8e8ec;color:#444}
+.status.info{background:#e3efff;color:#1a4a7a}
+.btn-row{display:flex;gap:8px;margin-top:8px}
+.btn-row button{flex:1;padding:11px;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer}
+.btn-primary{background:#1a1a2e;color:#fff}
+.btn-secondary{background:#f0f0f3;color:#1a1a2e}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>♟ Endgame Catur</h1>
+  <p>Glosarium · Kuis · Papan Latihan</p>
+</header>
+
+<main id="app"></main>
+
+<nav class="nav">
+  <button data-tab="belajar" class="active"><span class="ic">📚</span>Belajar</button>
+  <button data-tab="latihan"><span class="ic">🎯</span>Kuis</button>
+  <button data-tab="posisi"><span class="ic">♟</span>Posisi</button>
+  <button data-tab="progress"><span class="ic">📊</span>Progress</button>
+</nav>
+
+<script>
+/* ============ DATABASE ISTILAH ============ */
+const DB = [
+["King activity","umum","Raja harus aktif di endgame: maju ke pusat, dukung pion, serang pion lawan."],
+["Two weaknesses","umum","Prinsip menyerang dua kelemahan sekaligus; lawan tak bisa bertahan di dua tempat."],
+["Worst-piece improvement","umum","Perbaiki buah paling buruk dulu sebelum membuat rencana."],
+["Blockade","umum","Menahan pion bebas lawan dengan buah di depannya (kuda/raja/benteng)."],
+["Passed pawn","umum","Pion bebas: tidak ada pion lawan di file sama atau file sebelah di depannya."],
+["Protected passed pawn","umum","Pion bebas yang dilindungi pion lain; sangat kuat di endgame."],
+["Outside passed pawn","umum","Pion bebas di sayap jauh, dipakai menarik raja lawan dari pusat."],
+["Candidate passed pawn","umum","Pion calon bebas lewat keunggulan pion (majority) atau breakthrough."],
+["Pawn majority","umum","Mayoritas pion di satu sayap untuk menciptakan pion bebas."],
+["Pawn breakthrough","umum","Terobosan pion untuk membuka jalan promosi."],
+["Zugzwang","umum","Terpaksa jalan ke posisi lebih buruk; tidak ada langkah netral."],
+["Triangulation","umum","Raja berputar 3 langkah untuk kehilangan tempo dan memaksa lawan jalan."],
+["Opposition","umum","Raja berhadapan dengan satu kotak kosong di antara; pemegang kunci."],
+["Corresponding squares","umum","Kotak-kotak kunci yang saling berpasangan antara dua raja."],
+["Key squares","umum","Kotak yang jika diraih raja menjamin promosi pion."],
+["Square of the pawn","umum","Kotak dari pion ke promosi; hitung apakah raja lawan bisa mengejar."],
+["Fortress","umum","Pertahanan permanen yang membuat posisi unggul tidak bisa menang."],
+["Stalemate","umum","Pat: tidak ada langkah legal, raja tidak skak — seri."],
+["Perpetual check","umum","Skak berulang tanpa henti; seri."],
+["Conversion","umum","Mengubah keunggulan menjadi kemenangan teknis."],
+["Prophylaxis","umum","Mencegah rencana lawan sebelum terjadi."],
+["Dead position","umum","Posisi tanpa skakmat mungkin; seri otomatis."],
+["Insufficient material","umum","Material tidak cukup untuk skakmat (mis. K vs K, K+B vs K)."],
+["Tempo count","umum","Hitung langkah; endgame sering ditentukan satu tempo."],
+["Direct opposition","pion","Raja berhadapan satu kotak kosong; siapa tidak jalan memegang kunci."],
+["Distant opposition","pion","Opposition berjarak ganjil (3,5,7 kotak)."],
+["Virtual opposition","pion","Opposition tidak langsung; dihitung lewat kotak-kotak kunci."],
+["Diagonal opposition","pion","Raja berhadapan diagonal dengan satu kotak kosong."],
+["Rectangular opposition","pion","Raja membentuk persegi panjang; kunci kotak."],
+["Knight opposition","pion","Raja berjarak gerak kuda; bentuk opposition khusus."],
+["Reserved tempo","pion","Pion cadangan yang bisa maju untuk kehilangan tempo."],
+["Zone of the king","pion","Area yang dikuasai raja; menentukan siapa bisa masuk."],
+["Shoulder method","pion","Raja sendiri menghalangi raja lawan mendekat ke pion."],
+["Pawn race","pion","Balapan promosi pion; hitung siapa promosi dulu."],
+["Promotion with check","pion","Promosi yang sekaligus memberi skak; sering menentukan."],
+["Underpromotion","pion","Promosi jadi kuda/benteng/uskup; kadang lebih baik dari ratu."],
+["Rook pawn draw","pion","Pion benteng (a/h) sering seri jika raja bertahan di sudut."],
+["Knight pawn draw","pion","Pion kuda (b/g) punya teknik bertahan khusus."],
+["Stalemate defense","pion","Bertahan dengan pat saat raja terkunci di sudut."],
+["Pawn zugzwang","pion","Pion dipaksa maju ke posisi buruk karena zugzwang."],
+["Rook behind the passed pawn","benteng","Benteng paling kuat di belakang pion bebas (sendiri/lawan)."],
+["Active rook","benteng","Benteng aktif menyerang/memberi check; hindari pasif total."],
+["Cut-off king","benteng","Benteng memotong raja lawan di file/rank."],
+["Checking distance","benteng","Jarak aman benteng saat memberi check agar tidak diserang."],
+["Frontal defense","benteng","Benteng bertahan di depan pion lawan."],
+["Short-side defense","benteng","Raja bertahan di sisi pendek papan."],
+["Long-side defense","benteng","Raja bertahan di sisi panjang papan."],
+["Lucena position","benteng","Posisi menang klasik benteng+pion vs benteng; teknik building a bridge."],
+["Building a bridge","benteng","Teknik di Lucena: benteng membuat jembatan agar raja bisa keluar."],
+["Philidor position","benteng","Posisi bertahan klasik benteng vs pion di baris ke-6/3."],
+["Vancura position","benteng","Pertahanan benteng vs pion sayap; benteng serang dari samping."],
+["Rook vs pawn","benteng","Raja aktif + benteng di belakang pion; hitung tempo."],
+["Rook vs connected pawns","benteng","Bertahan/menyerang dengan potong raja dan hitung tempo."],
+["Rook vs two pawns","benteng","Potong raja lawan, aktifkan benteng, hitung tempo promosi."],
+["Rook + pawn vs rook","benteng","Endgame paling sering; kuasai Lucena & Philidor."],
+["Rook + bishop vs rook","benteng","Teknik menang khusus; butuh koordinasi."],
+["Rook + knight vs rook","benteng","Teknik menang khusus; sering sulit."],
+["Two rooks vs rook","benteng","Koordinasi dua benteng; tukar satu untuk menang."],
+["Rook vs bishop","benteng","Biasanya seri jika raja aman dan uskup aktif."],
+["Rook vs knight","benteng","Biasanya seri jika raja aman; kuda blokade."],
+["Rook vs queen","benteng","Bertahan dengan check/perpetual; posisi khusus."],
+["Passive rook loss","benteng","Benteng pasif total hampir selalu kalah."],
+["Rook lift in endgame","benteng","Benteng naik ke baris lebih tinggi untuk menyerang."],
+["Bishop pair","uskup","Dua uskup sangat kuat di posisi terbuka."],
+["Opposite-colored bishops","uskup","Uskup beda warna; sering seri/fortress meski materi kurang."],
+["Same-colored bishops","uskup","Uskup sewarna; konversi keunggulan pion lewat zugzwang."],
+["Wrong bishop","uskup","Uskup salah warna dengan pion rook = seri."],
+["Good bishop vs bad bishop","uskup","Uskup aktif vs uskup terkunci pion sendiri."],
+["Bishop vs knight","uskup","Uskup unggul di terbuka, kuda unggul di tertutup."],
+["Bishop vs pawn","uskup","Raja + uskup menahan pion; hitung warna kotak promosi."],
+["Bishop + pawn vs king","uskup","Teknik promosi dengan dukungan raja."],
+["Bishop + pawns vs bishop","uskup","Blokade dan ciptakan pion bebas; atur tempo."],
+["Bishop vs rook pawn","uskup","Sering seri jika uskup salah warna dengan kotak promosi."],
+["Fortress with bishop","uskup","Pertahanan uskup di sudut; raja aman."],
+["Blockade with bishop","uskup","Uskup menahan pion bebas dari jarak jauh."],
+["Bishop domination","uskup","Uskup menguasai kuda/buah lawan sehingga tidak bergerak."],
+["Bishop confinement","uskup","Uskup mengurung raja/buah lawan di sudut."],
+["Knight blockade","kuda","Kuda memblokade pion bebas; kotak di depan pion."],
+["Knight outpost","kuda","Kuda di kotak aman yang tidak bisa diserang pion lawan."],
+["Knight vs pawn","kuda","Kuda menahan pion di pinggir/pusat; hitung tempo."],
+["Knight + pawn vs king","kuda","Teknik promosi; raja bantu kuda."],
+["Knight vs bishop","kuda","Kuda unggul di posisi tertutup; uskup di terbuka."],
+["Knight fork","kuda","Taktik garpu kuda; sering mengubah endgame."],
+["Knight triangulation","kuda","Kuda mengatur tempo lewat rute khusus."],
+["Knight stalemate","kuda","Pat dengan bantuan kuda; senjata bertahan."],
+["Knight promotion","kuda","Underpromotion jadi kuda; kadang lebih kuat dari ratu."],
+["Knight vs rook pawn","kuda","Teknik bertahan khusus; hitung kotak."],
+["Knight domination","kuda","Kuda mengurung uskup/buah lawan."],
+["Queen vs king","ratu","Skakmat dasar; raja sendiri harus mendekat."],
+["Queen vs pawn on 7th","ratu","Raja mendekat, ratu mengunci; teknik khusus per pion."],
+["Queen vs rook","ratu","Menang tapi hati-hati perpetual & stalemate."],
+["Queen vs bishop/knight","ratu","Biasanya menang; hindari pat."],
+["Queen vs two rooks","ratu","Tergantung posisi; ratu sering menang."],
+["Queen + pawn vs queen","ratu","Hindari perpetual; lindungi raja; dorong promosi."],
+["Queen perpetual check","ratu","Skak berulang dengan ratu; senjata bertahan."],
+["Queen stalemate trap","ratu","Waspadai pat saat unggul ratu."],
+["Queen triangulation","ratu","Ratu mengatur tempo lewat rute segitiga."],
+["Queen blockade","ratu","Ratu menahan pion bebas dari jauh."],
+["Queen check distance","ratu","Jarak aman ratu saat memberi skak."],
+["Queen vs passed pawn","ratu","Raja sendiri mendekat; ratu kunci pion."],
+["King + queen vs king","material","Skakmat dasar; ajari raja mendekat dulu."],
+["King + rook vs king","material","Skakmat dasar; teknik raja + benteng."],
+["King + two bishops vs king","material","Skakmat dasar; dua uskup koordinasi."],
+["King + bishop + knight vs king","material","Skakmat sulit; butuh teknik khusus."],
+["King + two knights vs king","material","Tidak bisa skakmat paksa; hanya seri."],
+["Rook + bishop vs rook","material","Teknik menang khusus; butuh presisi."],
+["Rook + knight vs rook","material","Teknik menang khusus; sering sulit."],
+["Two bishops vs knight","material","Konversi pion dengan dua uskup."],
+["Bishop + knight vs king","material","Skakmat teknis; latih langkah demi langkah."],
+["Rook vs two minor pieces","material","Hitung koordinasi; sering seimbang."],
+["Queen vs two rooks","material","Posisi khusus; ratu sering menang."],
+["Minor piece vs pawns","material","Blokade dan hitung tempo promosi."],
+["Rook vs pawns","material","Potong raja dan aktifkan benteng."],
+["Queen vs pawns","material","Hindari pat; raja mendekat."],
+["Minor exchange","material","Tukar uskup dengan kuda; sering menguntungkan."],
+["Active defense","bertahan","Aktifkan raja & buah; bertahan pasif biasanya kalah."],
+["Exchange defender","bertahan","Tukar buah penyerang utama lawan."],
+["Counterplay","bertahan","Ciptakan ancaman balik untuk mengalihkan lawan."],
+["Philidor defense","bertahan","Benteng di baris ke-6/3 vs pion lawan."],
+["Vancura defense","bertahan","Benteng serang pion sayap dari samping."],
+["Short-side defense","bertahan","Raja di sisi pendek vs pion sayap."],
+["Frontal defense","bertahan","Benteng di depan pion lawan."],
+["Wrong bishop defense","bertahan","Uskup salah warna bertahan di sudut."],
+["Opposite bishops fortress","bertahan","Uskup beda warna = fortress alami."],
+["Zugzwang avoidance","bertahan","Hindari posisi terpaksa jalan."],
+["Pawn sacrifice","bertahan","Korbankan pion untuk pat/fortress."],
+["King activity","bertahan","Raja aktif adalah pertahanan terbaik."],
+["Checking distance","bertahan","Jaga jarak aman benteng saat check."],
+["Promotion count","hitung","Hitung langkah promosi; siapa lebih dulu."],
+["Tempo count","hitung","Hitung tempo opposition; siapa jalan."],
+["Opposition count","hitung","Hitung apakah raja bisa merebut opposition."],
+["Square of the pawn count","hitung","Hitung apakah raja bisa mengejar pion."],
+["Checking distance count","hitung","Hitung jarak aman benteng."],
+["Key squares count","hitung","Hitung apakah raja bisa mencapai key squares."],
+["Corresponding squares count","hitung","Hitung kotak kunci berpasangan."],
+["Zugzwang count","hitung","Hitung siapa terpaksa jalan."],
+["Exchange calculation","hitung","Hitung hasil tukar buah menuju endgame."],
+["Pawn majority count","hitung","Hitung siapa punya pion bebas."],
+["Outside passed pawn count","hitung","Hitung efek tarik raja lawan."],
+["Stalemate danger","hitung","Waspadai pat saat unggul besar."],
+["Perpetual danger","hitung","Waspadai skak berulang saat unggul."],
+["Three-move plan","hitung","Rencana 3 langkah sebelum masuk endgame."],
+["Position improvement first","hitung","Perbaiki posisi dulu, baru terobosan."],
+["Delayed promotion","hitung","Jangan buru-buru promosi; amankan raja dulu."],
+["Saavedra position","posisi","Studi terkenal: promosi underpromotion untuk menang."],
+["Réti maneuver","posisi","Raja mengejar dua pion jauh; teknik geometri."],
+["Grigoriev maneuver","posisi","Manuver raja khusus di endgame pion."],
+["Szen position","posisi","Posisi pion kunci untuk opposition."],
+["Kling & Horwitz position","posisi","Posisi klasik uskup+kuda vs pion."],
+["Karstedt position","posisi","Studi endgame pion klasik."],
+["Lasker position","posisi","Posisi pion & raja untuk opposition jauh."],
+["Tarrasch position","posisi","Posisi benteng vs pion dengan pertahanan khusus."],
+["Troitzky endgame","posisi","Studi endgame dua kuda vs pion."],
+["Doubled pawns","struktur","Pion ganda; sering lemah tapi bisa berguna di file terbuka."],
+["Isolated pawn","struktur","Pion tanpa pion pendukung di file sebelah."],
+["Backward pawn","struktur","Pion tertinggal; kotak di depannya lemah."],
+["Connected pawns","struktur","Pion bersambung di file sebelah; kuat."],
+["Pawn chain","struktur","Rantai pion; serang pangkalnya."],
+["Pawn island","struktur","Kelompok pion terpisah; makin banyak makin lemah."],
+["Pawn lever","struktur","Pion yang bisa maju untuk membuka posisi."],
+["Pawn break","struktur","Dorongan pion untuk membuka file/diagonal."],
+["Pawn phalanx","struktur","Dua pion bersebelahan yang saling melindungi."],
+["Pawn skeleton","struktur","Kerangka pion; menentukan rencana jangka panjang."],
+["Hanging pawns","struktur","Dua pion di tengah tanpa pendukung pion; bisa kuat/lemah."],
+["Passed pawn blockader","struktur","Buah yang memblokade pion bebas lawan."],
+["Endgame study","study","Komposisi catur yang mengajarkan teknik endgame."],
+["Composition","study","Karya seni catur; sering berisi teknik endgame."],
+["Retrograde analysis","study","Menganalisis posisi mundur untuk memahami urutan."],
+["Pawn endgame","jenis","Endgame hanya pion dan raja."],
+["Rook endgame","jenis","Endgame dengan benteng; paling sering muncul."],
+["Bishop endgame","jenis","Endgame dengan uskup."],
+["Knight endgame","jenis","Endgame dengan kuda."],
+["Bishop vs knight endgame","jenis","Endgame uskup vs kuda; tergantung posisi."],
+["Queen endgame","jenis","Endgame dengan ratu."],
+["Mixed endgame","jenis","Endgame dengan jenis buah berbeda."],
+["Minor piece endgame","jenis","Endgame uskup/kuda."],
+["Rook and minor piece endgame","jenis","Endgame benteng + uskup/kuda."],
+["Queen and pawn endgame","jenis","Endgame ratu + pion."],
+["50-move rule","aturan","Seri jika 50 langkah tanpa progress."],
+["Threefold repetition","aturan","Seri jika posisi sama 3 kali."],
+["Fivefold repetition","aturan","Seri otomatis jika posisi sama 5 kali."],
+["75-move rule","aturan","Seri otomatis jika 75 langkah tanpa progress."]
+];
+
+const CATS = {umum:"Umum",pion:"Raja & Pion",benteng:"Benteng",uskup:"Uskup",kuda:"Kuda",ratu:"Ratu",material:"Material",bertahan:"Bertahan",hitung:"Hitung",posisi:"Nama Posisi",struktur:"Struktur Pion",study:"Studi",jenis:"Jenis Endgame",aturan:"Aturan"};
+
+const TERMS = DB.map(([name,cat,desc],i)=>({id:i,name,cat,desc}));
+
+/* ============ POSISI LATIHAN ============ */
+const POSITIONS = [
+  {id:'kqk',name:'Skakmat K+Q vs K',fen:'8/8/8/4k3/8/8/4K3/6Q1 w - - 0 1',playerColor:'w',goal:'Skakmat raja hitam. Gunakan ratu untuk mengurung, raja mendekat.',hint:'Jaga ratu berjarak gerak kuda dari raja lawan. Raja putih maju mendekat.'},
+  {id:'krk',name:'Skakmat K+R vs K',fen:'8/8/8/4k3/8/8/4K3/6R1 w - - 0 1',playerColor:'w',goal:'Skakmat raja hitam dengan raja + benteng. Kunci raja lawan di tepi.',hint:'Benteng potong baris, raja mendekat, beri skakmat di tepi.'},
+  {id:'szn',name:'Breakthrough (Szen)',fen:'7k/1ppp4/8/1PPP4/8/8/8/K7 w - - 0 1',playerColor:'w',goal:'Ciptakan pion bebas dan promosikan. Terobosan pion adalah kunci.',hint:'1.b6! cxb6 2.c6! bxc6 3.d6 dan pion d bebas.'},
+  {id:'qp7',name:'Queen vs Pawn on 7th',fen:'8/8/8/8/8/6K1/1p6/3Q4 w - - 0 1',playerColor:'w',goal:'Hentikan pion hitam dan menangkan. Ratu + raja harus bekerja sama.',hint:'1.Qb3! (atau Qd2) menghentikan promosi. Raja mendekat.'},
+  {id:'lucena',name:'Lucena Position',fen:'1K6/1P6/8/8/8/7k/1r6/7R w - - 0 1',playerColor:'w',goal:'Menangkan dengan building a bridge. Pion b7 sudah di baris 7.',hint:'1.Rh4! (siap jembatan) lalu raja keluar, benteng beri check, raja dukung promosi.'},
+  {id:'philidor',name:'Philidor Defense',fen:'4k3/8/3K4/4P3/4r3/8/8/4R3 b - - 0 1',playerColor:'b',goal:'Bertahan (draw). Hitam harus mempertahankan Philidor.',hint:'1...Rf4! memotong raja. Jika putih mendekat, beri check dari belakang.'},
+  {id:'opp',name:'Opposition Dasar',fen:'8/8/4k3/8/4K3/8/8/8 w - - 0 1',playerColor:'w',goal:'Demonstrasi opposition. Coba rebut kotak kunci dengan raja.',hint:'Raja berhadapan satu kotak kosong. Pemegang opposition mengontrol.'},
+  {id:'rkp',name:'Rook vs Pawn',fen:'R7/8/8/4k3/8/4p3/8/K7 w - - 0 1',playerColor:'w',goal:'Tahan pion hitam (draw). Benteng harus aktif dan raja mendekat.',hint:'Benteng serang dari belakang. Jangan biarkan raja hitam mendukung pion.'}
+];
+
+/* ============ STATE ============ */
+let state = {
+  tab:'belajar', filter:'all', query:'', detail:null,
+  quiz:{q:null,opts:[],answered:false,score:0,total:0,streak:0,best:0,correctIdx:0,chosenIdx:-1},
+  pos:{list:POSITIONS,current:null,chess:null,playerColor:'w',sel:null,hints:[],aiThinking:false,status:null,statusType:'info'}
+};
+
+function loadProgress(){
+  try{
+    const p = JSON.parse(localStorage.getItem('eg_progress')||'{}');
+    Object.assign(state.quiz,p.quiz||{});
+    state.pos.solved = p.solved||{};
+  }catch(e){state.pos.solved={};}
+}
+function saveProgress(){
+  localStorage.setItem('eg_progress',JSON.stringify({quiz:state.quiz,solved:state.pos.solved}));
+}
+loadProgress();
+
+const app = document.getElementById('app');
+
+/* ============ RENDER ROUTER ============ */
+function render(){
+  if(state.detail!==null){return renderDetail();}
+  if(state.pos.current!==null){return renderPosisiPlay();}
+  switch(state.tab){
+    case 'belajar': return renderBelajar();
+    case 'latihan': return renderLatihan();
+    case 'posisi': return renderPosisiList();
+    case 'progress': return renderProgress();
+  }
+}
+
+/* ============ BELAJAR ============ */
+function renderBelajar(){
+  let filtered = TERMS;
+  if(state.filter!=='all') filtered = filtered.filter(t=>t.cat===state.filter);
+  if(state.query){
+    const q = state.query.toLowerCase();
+    filtered = filtered.filter(t=>t.name.toLowerCase().includes(q)||t.desc.toLowerCase().includes(q));
+  }
+  const catList = Object.entries(CATS).map(([k,v])=>
+    `<button class="cat ${state.filter===k?'active':''}" data-cat="${k}">${v}</button>`).join('');
+  const items = filtered.length ? filtered.map(t=>
+    `<div class="item" data-id="${t.id}"><div><div class="item-name">${t.name}</div><div class="item-cat">${CATS[t.cat]}</div></div><span class="item-arrow">›</span></div>`).join('')
+    : '<div class="empty">Tidak ada istilah ditemukan</div>';
+  app.innerHTML = `
+    <div class="search"><input type="search" placeholder="Cari istilah..." value="${state.query}" id="q"></div>
+    <div class="cats"><button class="cat ${state.filter==='all'?'active':''}" data-cat="all">Semua</button>${catList}</div>
+    <div class="list">${items}</div>`;
+  document.getElementById('q').addEventListener('input',e=>{
+    state.query=e.target.value; renderBelajar(); document.getElementById('q').focus();
+  });
+  document.querySelectorAll('.cat').forEach(el=>el.addEventListener('click',()=>{state.filter=el.dataset.cat;renderBelajar();}));
+  document.querySelectorAll('.list .item').forEach(el=>el.addEventListener('click',()=>{state.detail=parseInt(el.dataset.id);render();}));
+}
+
+function renderDetail(){
+  const t = TERMS[state.detail];
+  if(!t){state.detail=null;return render();}
+  app.innerHTML = `
+    <div class="detail">
+      <button class="back" onclick="goBack()">‹ Kembali</button>
+      <span class="tag">${CATS[t.cat]}</span>
+      <h2>${t.name}</h2>
+      <p>${t.desc}</p>
+      <div style="margin-top:24px;padding:14px;background:#f5f5f7;border-radius:12px;font-size:13px;color:#666;line-height:1.6">
+        💡 Cari tutorial lengkap: <b>${t.name}</b> di Chessable / Lichess Study / YouTube.
+      </div>
+    </div>`;
+}
+window.goBack = ()=>{state.detail=null;render();};
+
+/* ============ KUIS ============ */
+function renderLatihan(){
+  const q = state.quiz;
+  if(!q.q) startQuestion();
+  const optsHtml = q.opts.map((o,i)=>{
+    let cls='opt';
+    if(q.answered){ if(i===q.correctIdx) cls+=' correct'; else if(i===q.chosenIdx) cls+=' wrong'; }
+    return `<button class="${cls}" data-opt="${i}" ${q.answered?'disabled':''}>${o.name}</button>`;
+  }).join('');
+  app.innerHTML = `
+    <div class="quiz">
+      <h2>Kuis Istilah</h2>
+      <div class="score">Skor: ${q.score}/${q.total} · Streak: ${q.streak}</div>
+      <div class="q-card"><div class="q-label">Istilah ini adalah?</div><div class="q-text">${q.q.desc}</div></div>
+      ${optsHtml}
+      <button class="next-btn" id="next" ${q.answered?'':'disabled'}>${q.answered?'Soal Berikutnya →':'Pilih jawaban dulu'}</button>
+    </div>`;
+  document.querySelectorAll('.opt').forEach(el=>el.addEventListener('click',()=>{
+    if(q.answered)return;
+    const i=parseInt(el.dataset.opt); q.chosenIdx=i; q.answered=true;
+    if(i===q.correctIdx){q.score++;q.total++;q.streak++;if(q.streak>q.best)q.best=q.streak;}
+    else{q.total++;q.streak=0;}
+    saveProgress(); renderLatihan();
+  }));
+  document.getElementById('next').addEventListener('click',()=>{q.q=null;q.answered=false;startQuestion();renderLatihan();});
+}
+
+function startQuestion(){
+  const q = state.quiz;
+  const t = TERMS[Math.floor(Math.random()*TERMS.length)];
+  const sameCat = TERMS.filter(x=>x.cat===t.cat && x.id!==t.id);
+  const pool = sameCat.length>=3?sameCat:TERMS.filter(x=>x.id!==t.id);
+  const shuffled = pool.slice().sort(()=>Math.random()-0.5).slice(0,3);
+  const opts = [t,...shuffled].sort(()=>Math.random()-0.5);
+  q.q=t; q.opts=opts; q.correctIdx=opts.findIndex(x=>x.id===t.id); q.chosenIdx=-1; q.answered=false;
+}
+
+/* ============ POSISI LIST ============ */
+function renderPosisiList(){
+  const items = POSITIONS.map(p=>{
+    const done = state.pos.solved&&state.pos.solved[p.id];
+    return `<div class="pos-item" data-id="${p.id}">
+      <div><div class="pn">${p.name} ${done?'✅':''}</div><div class="pg">${p.playerColor==='w'?'Main Putih':'Main Hitam'}</div></div>
+      <span class="ar">›</span></div>`;
+  }).join('');
+  app.innerHTML = `<div class="pos-list"><h2 style="padding:8px 4px 12px;font-size:18px">Latihan Posisi</h2>${items}</div>`;
+  document.querySelectorAll('.pos-item').forEach(el=>el.addEventListener('click',()=>{
+    startPosition(el.dataset.id);
+  }));
+}
+
+function startPosition(id){
+  const p = POSITIONS.find(x=>x.id===id);
+  if(!p)return;
+  state.pos.current = p;
+  state.pos.chess = new Chess(p.fen);
+  state.pos.playerColor = p.playerColor;
+  state.pos.sel = null;
+  state.pos.hints = [];
+  state.pos.status = null;
+  state.pos.statusType = 'info';
+  state.pos.aiThinking = false;
+  render();
+}
+
+function renderPosisiPlay(){
+  const pos = state.pos;
+  const chess = pos.chess;
+  // flip board if player is black
+  const flip = pos.playerColor==='b';
+  const board = chess.board();
+  let boardHtml='';
+  for(let r=0;r<8;r++){
+    for(let f=0;f<8;f++){
+      const rr = flip?7-r:r, ff = flip?7-f:f;
+      const sq = board[rr][ff];
+      const sqName = 'abcdefgh'[ff]+(8-rr);
+      const isLight = (rr+ff)%2===0;
+      let cls = 'sq '+(isLight?'light':'dark');
+      if(pos.sel===sqName) cls+=' sel';
+      if(pos.hints.includes(sqName)) cls+= sq?' hint-cap':' hint-move';
+      const isKingInCheck = sq && sq.type==='k' && chess.in_check() && sq.color===chess.turn();
+      if(isKingInCheck) cls+=' check';
+      let pieceHtml='';
+      if(sq){
+        const sym = PIECES[sq.type];
+        const colorCls = sq.color==='w'?'piece-w':'piece-b';
+        pieceHtml = `<span class="${colorCls}">${sym}</span>`;
+      }
+      boardHtml += `<div class="${cls}" data-sq="${sqName}">${pieceHtml}</div>`;
+    }
+  }
+
+  let statusHtml = '';
+  if(pos.status){
+    const cls = pos.statusType==='win'?'win':pos.statusType==='lose'?'lose':pos.statusType==='draw'?'draw':'info';
+    statusHtml = `<div class="status ${cls}">${pos.status}</div>`;
+  }
+
+  app.innerHTML = `
+    <div class="board-wrap">
+      <button class="back" onclick="closePos()" style="margin-bottom:10px;background:none;border:none;color:#1a1a2e;font-size:15px;cursor:pointer;font-weight:500">‹ Kembali</button>
+      <div class="board">${boardHtml}</div>
+      <div class="pos-info" style="margin-top:14px">
+        <h2>${pos.current.name}</h2>
+        <div class="goal">🎯 ${pos.current.goal}</div>
+        <div class="hint">💡 ${pos.current.hint}</div>
+        ${statusHtml}
+        <div class="btn-row">
+          <button class="btn-primary" onclick="resetPos()">Ulangi</button>
+          <button class="btn-secondary" onclick="showSolutionHint()">Lihat Hint</button>
+        </div>
+      </div>
+    </div>`;
+
+  document.querySelectorAll('.sq').forEach(el=>{
+    el.addEventListener('click',()=>onSquareClick(el.dataset.sq));
+  });
+}
+
+window.closePos = ()=>{state.pos.current=null;state.pos.chess=null;render();};
+window.resetPos = ()=>{ if(state.pos.current) startPosition(state.pos.current.id); };
+window.showSolutionHint = ()=>{ alert(state.pos.current.hint); };
+
+function onSquareClick(sqName){
+  const pos = state.pos;
+  const chess = pos.chess;
+  if(pos.aiThinking || chess.game_over()) return;
+  // if it's not player's turn
+  if(chess.turn()!==pos.playerColor) return;
+  const piece = chess.get(sqName);
+  // if selecting own piece
+  if(piece && piece.color===pos.playerColor){
+    pos.sel = sqName;
+    pos.hints = chess.moves({square:sqName,verbose:true}).map(m=>m.to);
+    renderPosisiPlay();
+    return;
+  }
+  // if clicking a hint square -> move
+  if(pos.sel && pos.hints.includes(sqName)){
+    let promo;
+    if(isPromotion(pos.sel,sqName,pos.playerColor)) promo='q';
+    try{
+      chess.move({from:pos.sel,to:sqName,promotion:promo});
+    }catch(e){return;}
+    pos.sel=null; pos.hints=[];
+    afterMove();
+    return;
+  }
+  // else deselect
+  pos.sel=null; pos.hints=[];
+  renderPosisiPlay();
+}
+
+function isPromotion(from,to,color){
+  const rank = to[1];
+  if(color==='w' && rank==='8') return true;
+  if(color==='b' && rank==='1') return true;
+  return false;
+}
+
+function afterMove(){
+  const pos = state.pos;
+  const chess = pos.chess;
+  // check game over
+  if(chess.game_over()){
+    handleGameOver();
+    renderPosisiPlay();
+    return;
+  }
+  // AI move
+  if(chess.turn()!==pos.playerColor){
+    pos.aiThinking = true;
+    pos.status = 'AI berpikir...'; pos.statusType='info';
+    renderPosisiPlay();
+    setTimeout(()=>{
+      const aiMove = getAIMove(chess,3);
+      if(aiMove){
+        try{chess.move(aiMove);}catch(e){}
+      }
+      pos.aiThinking=false;
+      if(chess.game_over()){handleGameOver();}
+      else{pos.status=null;}
+      renderPosisiPlay();
+    },80);
+  } else {
+    renderPosisiPlay();
+  }
+}
+
+function handleGameOver(){
+  const pos = state.pos;
+  const chess = pos.chess;
+  const playerLost = chess.turn()===pos.playerColor;
+  if(chess.in_checkmate()){
+    if(playerLost){
+      pos.status = '❌ Skakmat — kamu kalah. Coba lagi!';
+      pos.statusType='lose';
+    } else {
+      pos.status = '🎉 Skakmat — kamu menang!';
+      pos.statusType='win';
+      markSolved(pos.current.id);
+    }
+  } else if(chess.in_stalemate()||chess.in_draw()){
+    pos.status = '🤝 Seri (stalemate/draw).';
+    pos.statusType='draw';
+    // for defense positions, draw = success
+    if(pos.current.id==='philidor'||pos.current.id==='rkp'||pos.current.id==='opp'){
+      pos.status = '✅ Berhasil bertahan (seri)!';
+      pos.statusType='win';
+      markSolved(pos.current.id);
+    }
+  } else {
+    pos.status = 'Game over.';
+    pos.statusType='info';
+  }
+}
+
+function markSolved(id){
+  if(!state.pos.solved) state.pos.solved={};
+  state.pos.solved[id]=true;
+  saveProgress();
+}
+
+/* ============ AI SEDERHANA ============ */
+const PIECES = {p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚'};
+
+function evalFull(chess){
+  if(chess.in_checkmate()) return chess.turn()==='w'?-99999:99999;
+  if(chess.in_draw()||chess.in_stalemate()) return 0;
+  const val = {p:100,n:320,b:330,r:500,q:900,k:0};
+  let s=0;
+  chess.board().forEach(row=>row.forEach(sq=>{
+    if(!sq) return;
+    s += sq.color==='w' ? val[sq.type] : -val[sq.type];
+  }));
+  // mobility bonus
+  const mob = chess.moves().length;
+  s += (chess.turn()==='w'?1:-1)*mob*2;
+  return s;
+}
+
+function search(chess, depth, alpha, beta){
+  if(depth===0 || chess.game_over()) return evalFull(chess);
+  const moves = chess.moves({verbose:true});
+  if(chess.turn()==='w'){
+    let best=-Infinity;
+    for(const m of moves){
+      chess.move(m);
+      const s = search(chess,depth-1,alpha,beta);
+      chess.undo();
+      if(s>best)best=s;
+      if(best>alpha)alpha=best;
+      if(alpha>=beta)break;
+    }
+    return best;
+  } else {
+    let best=Infinity;
+    for(const m of moves){
+      chess.move(m);
+      const s = search(chess,depth-1,alpha,beta);
+      chess.undo();
+      if(s<best)best=s;
+      if(best<beta)beta=best;
+      if(alpha>=beta)break;
+    }
+    return best;
+  }
+}
+
+function getAIMove(chess, depth){
+  const moves = chess.moves({verbose:true});
+  if(!moves.length) return null;
+  const isWhite = chess.turn()==='w';
+  let bestScore = isWhite ? -Infinity : Infinity;
+  let bestMoves = [];
+  for(const m of moves){
+    chess.move(m);
+    const s = search(chess,depth-1,-Infinity,Infinity);
+    chess.undo();
+    if(isWhite ? s>bestScore : s<bestScore){
+      bestScore = s;
+      bestMoves = [m];
+    } else if(s===bestScore){
+      bestMoves.push(m);
+    }
+  }
+  return bestMoves[Math.floor(Math.random()*bestMoves.length)];
+}
+
+/* ============ PROGRESS ============ */
+function renderProgress(){
+  const q = state.quiz;
+  const acc = q.total>0?Math.round((q.score/q.total)*100):0;
+  const solved = Object.keys(state.pos.solved||{}).length;
+  const total = POSITIONS.length;
+  app.innerHTML = `
+    <div class="progress">
+      <div class="stat-card"><h3>Kuis</h3><div class="big">${q.score}/${q.total}</div><div class="sub">Akurasi ${acc}%</div></div>
+      <div class="stat-card"><h3>Streak Terbaik</h3><div class="big">${q.best}</div><div class="sub">jawaban benar berturut-turut</div></div>
+      <div class="stat-card"><h3>Posisi Diselesaikan</h3><div class="big">${solved}/${total}</div><div class="sub">latihan papan</div></div>
+      <button class="reset-btn" onclick="resetAll()">Reset Semua Progress</button>
+    </div>`;
+}
+
+window.resetAll = ()=>{
+  if(!confirm('Reset semua progress?')) return;
+  state.quiz = {q:null,opts:[],answered:false,score:0,total:0,streak:0,best:0,correctIdx:0,chosenIdx:-1};
+  state.pos.solved = {};
+  saveProgress(); render();
+};
+
+/* ============ NAV ============ */
+document.querySelectorAll('.nav button').forEach(el=>{
+  el.addEventListener('click',()=>{
+    document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+    el.classList.add('active');
+    state.tab = el.dataset.tab;
+    state.detail = null;
+    state.pos.current = null;
+    render();
+  });
+});
+
+render();
+</script>
+</body>
+</html>
